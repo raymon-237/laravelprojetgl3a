@@ -1,28 +1,43 @@
 <template>
-  <div class="flex h-screen w-full bg-white overflow-hidden">
+  <div class="flex h-screen w-full bg-[#0f172a] text-slate-200 overflow-hidden font-sans selection:bg-indigo-500/30">
     <!-- Sidebar / Liste des conversations -->
-    <div class="w-1/3 border-r flex flex-col bg-gray-50">
-      <div class="p-4 bg-white border-b flex justify-between items-center shadow-sm z-10">
+    <div class="w-80 lg:w-96 glass-chat border-r border-white/5 flex flex-col z-20 relative">
+      <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
         <div class="flex items-center gap-3">
-          <img :src="currentUser.avatar_url" class="w-10 h-10 rounded-full border border-gray-200 shadow-sm" alt="Avatar"/>
-          <h2 class="text-xl font-bold text-gray-800">Discussions</h2>
+          <div class="relative group">
+            <img :src="currentUser.avatar_url || `https://ui-avatars.com/api/?name=${currentUser.name}&background=6366f1&color=fff`" class="w-11 h-11 rounded-2xl object-cover ring-2 ring-indigo-500/30 transition-all duration-300 group-hover:ring-indigo-500/60" alt="Avatar"/>
+            <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-[#0f172a] rounded-full"></div>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white leading-tight">Messages</h2>
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+              <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Actif</p>
+            </div>
+          </div>
         </div>
-        <button @click="logout" class="text-sm px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition font-semibold">Déconnexion</button>
+        <button @click="logout" title="Déconnexion" class="p-2.5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 rounded-xl transition-all duration-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
       </div>
       
-      <!-- Liste des utilisateurs pour un nouveau chat -->
-      <div class="p-4 border-b bg-white shadow-sm z-0">
-        <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2 ml-1">Nouvelle discussion</h3>
-        <select v-model="selectedNewUser" @change="startConversation" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
-          <option value="">Sélectionnez un utilisateur...</option>
-          <option v-for="user in availableUsers" :key="user.id" :value="user.id">
-            {{ user.name }}
-          </option>
-        </select>
+      <!-- Recherche / Nouveau Chat -->
+      <div class="p-5 space-y-4">
+        <div class="relative group">
+          <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+          <select v-model="selectedNewUser" @change="startConversation" class="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-sm text-slate-200 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none transition-all appearance-none cursor-pointer hover:bg-white/10">
+            <option value="" class="bg-[#1e293b]">Démarrer une discussion...</option>
+            <option v-for="user in availableUsers" :key="user.id" :value="user.id" class="bg-[#1e293b]">
+              {{ user.name }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <!-- Conversations actives -->
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto px-3 space-y-1 pb-6">
         <button 
           v-for="conv in conversations" :key="conv.id"
           @click="selectConversation(conv)"
@@ -107,17 +122,60 @@
           >
             <svg class="w-5 h-5 rotate-90 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
           </button>
+      <!-- Input Bar -->
+      <div class="px-8 pb-8 pt-4">
+        <form @submit.prevent="sendMessage" class="glass-chat rounded-[2.5rem] p-2 flex items-center gap-2 border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/5">
+          <button type="button" class="w-12 h-12 flex items-center justify-center text-slate-500 hover:text-indigo-400 transition-colors rounded-full hover:bg-white/5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          </button>
+          <input 
+            v-model="newMessage"
+            type="text" 
+            placeholder="Écrivez votre message ici..." 
+            class="flex-1 bg-transparent border-none py-3 text-[15px] focus:ring-0 placeholder-slate-500 text-white font-medium ml-2"
+          />
+          <div class="flex items-center pr-1">
+             <button 
+              type="submit" 
+              :disabled="!newMessage.trim() || sending"
+              class="relative bg-gradient-to-tr from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-purple-700 disabled:from-slate-800 disabled:to-slate-900 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-xl shadow-indigo-500/20 transition-all duration-300 scale-90 hover:scale-100 active:scale-95 disabled:scale-90"
+            >
+              <svg :class="['w-6 h-6 transition-transform', sending ? 'animate-bounce' : 'group-hover:translate-x-1 rotate-45 -mt-1 -mr-1']" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path></svg>
+            </button>
+          </div>
         </form>
       </div>
     </div>
     
-    <!-- Écran d'accueil au chargement ou sans conversation -->
-    <div class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-white" v-else>
-      <div class="bg-white p-8 rounded-full shadow-lg mb-6">
-        <svg class="w-20 h-20 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+    <!-- Empty State Moderne -->
+    <div class="flex-1 flex flex-col items-center justify-center p-12 overflow-hidden relative" v-else>
+      <div class="absolute -top-1/4 -right-1/4 w-[600px] h-[600px] bg-indigo-600/5 blur-[160px] rounded-full"></div>
+      <div class="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] bg-purple-600/5 blur-[160px] rounded-full"></div>
+      
+      <div class="relative mb-12">
+        <div class="bg-gradient-to-br from-indigo-600/20 to-purple-600/20 p-12 rounded-[4rem] border border-white/5 shadow-2xl backdrop-blur-xl transform rotate-3 hover:rotate-0 transition-transform duration-700">
+          <svg class="w-24 h-24 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        </div>
+        <div class="absolute -top-6 -right-6 w-16 h-16 bg-indigo-500 rounded-full blur-3xl opacity-30 animate-pulse"></div>
       </div>
-      <h2 class="text-3xl font-bold text-gray-800 mb-2">Bienvenue sur le Chat</h2>
-      <p class="text-lg text-gray-500 font-medium">Sélectionnez une discussion pour démarrer</p>
+      
+      <h2 class="text-5xl font-black text-white mb-6 tracking-tight text-center leading-[1.1]">
+        Prêt à briser <br/> <span class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">la glace ?</span>
+      </h2>
+      <p class="text-slate-400 text-lg font-semibold text-center max-w-sm leading-relaxed opacity-80">
+        Choisissez un contact à gauche pour lancer une discussion sécurisée et instantanée.
+      </p>
+      
+      <div class="mt-16 flex flex-col items-center gap-6">
+        <div class="flex -space-x-4">
+          <div v-for="i in 5" :key="i" class="w-12 h-12 rounded-2xl border-[3px] border-[#0f172a] bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500 shadow-xl transition-transform hover:-translate-y-2 hover:z-30 cursor-pointer">
+            {{ String.fromCharCode(64 + i) }}
+          </div>
+        </div>
+        <div class="px-6 py-2 bg-white/[0.03] border border-white/5 rounded-full">
+          <span class="text-[11px] text-indigo-400 font-black uppercase tracking-widest">+ Vos amis vous attendent</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
